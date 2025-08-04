@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Zeitform-Zwerg</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <script>
+        const verbData = [
+            {
+                frage: "Ich ___ (gehen) zur Schule.",
+                richtig: "gehe",
+                falsch: ["ging", "gegangen"]
+            },
+            {
+                frage: "Er ___ (machen) die Hausaufgaben.",
+                richtig: "macht",
+                falsch: ["machte", "gemacht"]
+            }
+        ];
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#A0D8EF',
+            physics: {
+                default: 'arcade',
+                arcade: { gravity: { y: 300 }, debug: false }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        let player;
+        let cursors;
+        let frageText;
+        let antworten = [];
+        let aktuelleFrage = 0;
+
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            this.load.image('boden', 'https://labs.phaser.io/assets/sprites/platform.png');
+            this.load.image('spieler', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
+        }
+
+        function create() {
+            const boden = this.physics.add.staticGroup();
+            boden.create(400, 580, 'boden').setScale(2).refreshBody();
+
+            player = this.physics.add.sprite(100, 450, 'spieler');
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            this.physics.add.collider(player, boden);
+
+            cursors = this.input.keyboard.createCursorKeys();
+
+            frageText = this.add.text(50, 50, '', { fontSize: '24px', fill: '#000' });
+
+            zeigeFrage.call(this);
+        }
+
+        function update() {
+            if (cursors.left.isDown) {
+                player.setVelocityX(-160);
+            } else if (cursors.right.isDown) {
+                player.setVelocityX(160);
+            } else {
+                player.setVelocityX(0);
+            }
+
+            if (cursors.up.isDown && player.body.touching.down) {
+                player.setVelocityY(-330);
+            }
+        }
+
+        function zeigeFrage() {
+            if (aktuelleFrage >= verbData.length) {
+                frageText.setText("🎉 Du hast alle Fragen geschafft!");
+                return;
+            }
+
+            const szene = this;
+            const frage = verbData[aktuelleFrage];
+            frageText.setText(frage.frage);
+
+            let antwortenMischung = [frage.richtig, ...frage.falsch].sort(() => 0.5 - Math.random());
+
+            antworten.forEach(a => a.destroy());
+            antworten = [];
+
+            antwortenMischung.forEach((antwort, index) => {
+                let antwortObj = szene.add.text(100 + index * 200, 120, antwort, {
+                    fontSize: '24px', fill: '#fff', backgroundColor: '#0099cc', padding: 10
+                }).setInteractive();
+
+                antwortObj.on('pointerdown', () => {
+                    if (antwort === frage.richtig) {
+                        frageText.setText('✅ Richtig!');
+                        szene.time.delayedCall(1000, () => {
+                            aktuelleFrage++;
+                            zeigeFrage.call(szene);
+                        });
+                    } else {
+                        frageText.setText('❌ Leider falsch!');
+                    }
+                });
+
+                antworten.push(antwortObj);
+            });
+        }
+    </script>
+</body>
+</html>
