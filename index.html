@@ -10,7 +10,7 @@
         canvas { display: block; margin: 0 auto; }
         #controls {
             position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px;
+            display: flex; gap: 10px; z-index: 10;
         }
         .btn {
             width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.3);
@@ -19,7 +19,7 @@
         }
         #hilfe {
             position: absolute; top: 10px; right: 10px; background: white; color: black; padding: 10px;
-            border-radius: 8px; max-width: 300px; display: none;
+            border-radius: 8px; max-width: 300px; display: none; z-index: 10;
         }
     </style>
 </head>
@@ -57,7 +57,7 @@ const config = {
     scene: { preload, create, update }
 };
 
-let player, cursors, jumpBtn, leftBtn, rightBtn, frageText, controls, activeScene;
+let player, cursors, jumpBtn, leftBtn, rightBtn, frageText, controls, activeScene, boden;
 
 const game = new Phaser.Game(config);
 
@@ -71,16 +71,22 @@ function create() {
     activeScene = this;
     cursors = this.input.keyboard.createCursorKeys();
 
+    boden = this.physics.add.staticGroup();
+    boden.create(400, 580, 'boden').setScale(2).refreshBody();
+
     player = this.physics.add.sprite(100, 450, 'spieler');
     player.setScale(2);
     player.setBounce(0.1);
     player.setCollideWorldBounds(true);
 
+    this.physics.add.collider(player, boden);
+
     frageText = this.add.text(20, 20, '', { fontSize: '22px', fill: '#000' });
 
-    showTask(tasks[currentTask]);
     setupTouchControls();
     document.getElementById('hilfe').style.display = 'block';
+
+    showTask(tasks[currentTask]);
 }
 
 function update() {
@@ -99,31 +105,65 @@ function update() {
 }
 
 function showTask(task) {
-    const szene = activeScene;
     frageText.setText(task.frage);
 
-    const boden = szene.physics.add.staticGroup();
-    boden.create(400, 580, 'boden').setScale(2).refreshBody();
-    szene.physics.add.collider(player, boden);
+    if (task.type === 'door') showDoorTask(task);
+    else if (task.type === 'jump') showJumpTask(task);
+    else if (task.type === 'maze') showMazeTask(task);
+}
 
-    if (task.type === 'door') {
-        const doors = [task.richtig, ...task.falsch].sort(() => 0.5 - Math.random());
-        doors.forEach((txt, i) => {
-            const door = szene.physics.add.sprite(200 + i * 180, 500, 'tuer').setScale(0.5);
-            door.setImmovable(true);
-            door.antwort = txt;
-            szene.physics.add.overlap(player, door, () => {
-                if (door.antwort === task.richtig) {
-                    frageText.setText('✅ Richtig!');
-                    nextTask(szene);
-                } else {
-                    frageText.setText('❌ Falsch!');
-                }
-            });
+function showDoorTask(task) {
+    const szene = activeScene;
+    const doors = [task.richtig, ...task.falsch].sort(() => 0.5 - Math.random());
+    doors.forEach((txt, i) => {
+        const door = szene.physics.add.sprite(200 + i * 180, 500, 'tuer').setScale(0.5);
+        door.setImmovable(true);
+        door.antwort = txt;
+        szene.physics.add.overlap(player, door, () => {
+            if (door.antwort === task.richtig) {
+                frageText.setText('✅ Richtig!');
+                nextTask(szene);
+            } else {
+                frageText.setText('❌ Falsch!');
+            }
         });
-    }
+    });
+}
 
-    // Weitere Typen jump / maze folgen im zweiten Block
+function showJumpTask(task) {
+    const szene = activeScene;
+    const answers = [task.richtig, ...task.falsch].sort(() => 0.5 - Math.random());
+    answers.forEach((antwort, index) => {
+        const x = 150 + index * 220;
+        const text = szene.add.text(x, 200, antwort, { fontSize: '20px', fill: '#fff', backgroundColor: '#0099cc', padding: 10 });
+        szene.physics.world.enable(text);
+        text.body.setImmovable(true);
+        text.body.setAllowGravity(false);
+        text.antwort = antwort;
+        szene.physics.add.overlap(player, text, () => {
+            if (antwort === task.richtig) {
+                frageText.setText('✅ Richtig!');
+                nextTask(szene);
+            } else {
+                frageText.setText('❌ Falsch!');
+            }
+        });
+    });
+}
+
+function showMazeTask(task) {
+    const szene = activeScene;
+    const ziel = szene.add.text(700, 500, task.richtig, { fontSize: '24px', fill: '#fff', backgroundColor: '#0099cc', padding: 10 });
+    szene.physics.world.enable(ziel);
+    ziel.body.setImmovable(true);
+    ziel.body.setAllowGravity(false);
+    szene.physics.add.overlap(player, ziel, () => {
+        frageText.setText('✅ Richtig!');
+        nextTask(szene);
+    });
+    const wand = szene.add.rectangle(400, 400, 300, 20, 0x666666);
+    szene.physics.add.existing(wand, true);
+    szene.physics.add.collider(player, wand);
 }
 
 function nextTask(scene) {
