@@ -19,6 +19,10 @@
     margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   }
+  .score-box {
+    margin-bottom: 15px;
+    font-size: 18px;
+  }
   .doors {
     display: flex;
     justify-content: center;
@@ -51,82 +55,96 @@
 <body>
 
 <h1>Zeitform-Türenspiel</h1>
+<div class="score-box" id="score">Sterne: 0 | Goldmünzen: 0</div>
 <div class="question-box" id="question">Lade Frage...</div>
 <div class="doors" id="choices"></div>
 
 <script>
 const fragen = [
   {
-    frage: "Ich hole meine Schwester vom Bahnhof ab.",
-    antworten: [
-      "Ich holte meine Schwester vom Bahnhof ab.",
-      "Ich habe meine Schwester vom Bahnhof abgeholt.",
-      "Ich hole meine Schwester vom Bahnhof ab."
-    ],
-    richtig: "Ich habe meine Schwester vom Bahnhof abgeholt."
+    verb: "gehen",
+    saetze: {
+      präsens: "Ich gehe ins Kino.",
+      präteritum: "Ich ging ins Kino.",
+      perfekt: "Ich bin ins Kino gegangen."
+    }
   },
   {
-    frage: "Wir arbeiten heute im Büro.",
-    antworten: [
-      "Wir arbeiteten heute im Büro.",
-      "Wir haben heute im Büro gearbeitet.",
-      "Wir arbeiten heute im Büro."
-    ],
-    richtig: "Wir haben heute im Büro gearbeitet."
+    verb: "lernen",
+    saetze: {
+      präsens: "Du lernst Deutsch.",
+      präteritum: "Du lerntest Deutsch.",
+      perfekt: "Du hast Deutsch gelernt."
+    }
   },
   {
-    frage: "Du findest deinen Schlüssel unter dem Tisch.",
-    antworten: [
-      "Du fandest deinen Schlüssel unter dem Tisch.",
-      "Du hast deinen Schlüssel unter dem Tisch gefunden.",
-      "Du findest deinen Schlüssel unter dem Tisch."
-    ],
-    richtig: "Du hast deinen Schlüssel unter dem Tisch gefunden."
+    verb: "bringen",
+    saetze: {
+      präsens: "Er bringt den Kuchen mit.",
+      präteritum: "Er brachte den Kuchen mit.",
+      perfekt: "Er hat den Kuchen mitgebracht."
+    }
   },
   {
-    frage: "Er bringt den Kuchen zur Party.",
-    antworten: [
-      "Er brachte den Kuchen zur Party.",
-      "Er hat den Kuchen zur Party gebracht.",
-      "Er bringt den Kuchen zur Party."
-    ],
-    richtig: "Er hat den Kuchen zur Party gebracht."
+    verb: "arbeiten",
+    saetze: {
+      präsens: "Wir arbeiten zusammen.",
+      präteritum: "Wir arbeiteten zusammen.",
+      perfekt: "Wir haben zusammen gearbeitet."
+    }
   },
   {
-    frage: "Wir freuen uns auf das Wochenende.",
-    antworten: [
-      "Wir freuten uns auf das Wochenende.",
-      "Wir haben uns auf das Wochenende gefreut.",
-      "Wir freuen uns auf das Wochenende."
-    ],
-    richtig: "Wir haben uns auf das Wochenende gefreut."
+    verb: "fahren",
+    saetze: {
+      präsens: "Ihr fahrt nach Berlin.",
+      präteritum: "Ihr fuhrt nach Berlin.",
+      perfekt: "Ihr seid nach Berlin gefahren."
+    }
   }
 ];
 
-let aktuelleFrage = 0;
+let richtigeAntworten = parseInt(localStorage.getItem("richtigeAntworten")) || 0;
+let sterne = parseInt(localStorage.getItem("sterne")) || 0;
+let gold = parseInt(localStorage.getItem("gold")) || 0;
+
+function updateScore() {
+  document.getElementById("score").textContent = `Sterne: ${sterne} | Goldmünzen: ${gold}`;
+}
+
+function saveScore() {
+  localStorage.setItem("richtigeAntworten", richtigeAntworten);
+  localStorage.setItem("sterne", sterne);
+  localStorage.setItem("gold", gold);
+}
 
 function ladeFrage() {
-  const frage = fragen[aktuelleFrage];
-  document.getElementById("question").textContent = `Wähle die Perfektform von: "${frage.frage}"`;
+  const eintrag = fragen[Math.floor(Math.random() * fragen.length)];
+  const korrektForm = ["präsens", "präteritum", "perfekt"][Math.floor(Math.random() * 3)];
+  const frageText = eintrag.saetze[korrektForm];
+  const korrekt = frageText;
+
+  const falsche = Object.entries(eintrag.saetze).filter(([zeitform, satz]) => satz !== korrekt).map(([_, s]) => s);
+  const antworten = [korrekt, ...falsche].sort(() => Math.random() - 0.5);
+
+  document.getElementById("question").textContent = `Welche Satzform ist in "${frageText}"?`;
 
   const choiceBox = document.getElementById("choices");
   choiceBox.innerHTML = "";
 
-  frage.antworten.sort(() => Math.random() - 0.5).forEach(antwort => {
+  antworten.forEach(antwort => {
     const btn = document.createElement("div");
     btn.className = "door";
     btn.textContent = antwort;
-    btn.onclick = () => pruefeAntwort(btn, antwort);
+    btn.onclick = () => pruefeAntwort(btn, antwort, korrekt);
     choiceBox.appendChild(btn);
   });
 }
 
-function pruefeAntwort(button, antwort) {
-  const frage = fragen[aktuelleFrage];
+function pruefeAntwort(button, antwort, korrekt) {
   const kinder = document.querySelectorAll('.door');
   kinder.forEach(el => {
     el.classList.remove('correct', 'wrong');
-    if (el.textContent === frage.richtig) {
+    if (el.textContent === korrekt) {
       el.classList.add('correct');
     } else if (el.textContent === antwort) {
       el.classList.add('wrong');
@@ -134,12 +152,25 @@ function pruefeAntwort(button, antwort) {
     el.onclick = null;
   });
 
+  if (antwort === korrekt) {
+    richtigeAntworten++;
+    if (richtigeAntworten % 10 === 0) {
+      sterne++;
+      if (sterne % 10 === 0) {
+        gold++;
+        sterne = 0;
+      }
+    }
+    saveScore();
+    updateScore();
+  }
+
   setTimeout(() => {
-    aktuelleFrage = (aktuelleFrage + 1) % fragen.length;
     ladeFrage();
-  }, 2000);
+  }, 1500);
 }
 
+updateScore();
 ladeFrage();
 </script>
 
