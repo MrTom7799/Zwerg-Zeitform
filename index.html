@@ -23,6 +23,11 @@
       margin-top: 20px;
       font-size: 24px;
     }
+    #tense-info {
+      margin-top: 5px;
+      font-size: 18px;
+      color: #555;
+    }
     #doors {
       display: flex;
       justify-content: space-around;
@@ -59,6 +64,7 @@
 <body>
   <div id="game-container">
     <div id="question">Wähle die richtige Verbform: "Ich <u>gehen</u> gestern nach Hause."</div>
+    <div id="tense-info">Zeitform: Präteritum</div>
     <div id="doors">
       <div class="door" data-answer="geht">geht</div>
       <div class="door" data-answer="ging">ging</div>
@@ -72,19 +78,28 @@
     const doors = document.querySelectorAll('.door');
     const result = document.getElementById('result');
     const question = document.getElementById('question');
+    const tenseInfo = document.getElementById('tense-info');
 
     const tasks = [
-      { q: 'Ich <u>gehen</u> gestern nach Hause.', correct: 'ging', options: ['geht', 'ging', 'gegangen'] },
-      { q: 'Er <u>sein</u> müde.', correct: 'ist', options: ['war', 'ist', 'gewesen'] },
-      { q: 'Wir <u>haben</u> einen Hund.', correct: 'haben', options: ['hatten', 'haben', 'gehabt'] },
+      { q: 'Ich <u>gehen</u> gestern nach Hause.', correct: 'ging', options: ['geht', 'ging', 'gegangen'], tense: 'Präteritum' },
+      { q: 'Er <u>sein</u> sehr müde.', correct: 'ist', options: ['war', 'ist', 'gewesen'], tense: 'Präsens' },
+      { q: 'Wir <u>haben</u> früher einen Hund gehabt.', correct: 'hatten', options: ['haben', 'hatten', 'gehabt'], tense: 'Präteritum' },
+      { q: 'Du <u>kommen</u> gestern zu spät.', correct: 'kamst', options: ['kommst', 'kamst', 'gekommen'], tense: 'Präteritum' },
+      { q: 'Ich <u>lesen</u> jeden Abend ein Buch.', correct: 'lese', options: ['liest', 'las', 'lese'], tense: 'Präsens' },
+      { q: 'Ihr <u>schreiben</u> bereits einen Aufsatz.', correct: 'habt geschrieben', options: ['schreibt', 'habt geschrieben', 'schriebt'], tense: 'Perfekt' },
+      { q: 'Sie <u>trinken</u> vorhin einen Kaffee.', correct: 'haben getrunken', options: ['trinkt', 'tranken', 'haben getrunken'], tense: 'Perfekt' },
+      { q: 'Du <u>sehen</u> den Film schon?', correct: 'hast gesehen', options: ['siehst', 'sahst', 'hast gesehen'], tense: 'Perfekt' },
+      { q: 'Ich <u>müssen</u> früher oft helfen.', correct: 'musste', options: ['muss', 'musste', 'gemusst'], tense: 'Präteritum' },
+      { q: 'Wir <u>werden</u> bald fertig.', correct: 'werden', options: ['wurden', 'werden', 'worden'], tense: 'Präsens' }
     ];
 
     let currentIndex = 0;
-    let playerPos = 1; // 0 = links, 1 = mitte, 2 = rechts
+    let playerPos = 1;
 
     function renderTask() {
       const task = tasks[currentIndex];
       question.innerHTML = `Wähle die richtige Verbform: "${task.q}"`;
+      tenseInfo.textContent = `Zeitform: ${task.tense}`;
       doors.forEach((door, i) => {
         door.textContent = task.options[i];
         door.setAttribute('data-answer', task.options[i]);
@@ -124,7 +139,6 @@
       movePlayer(playerPos);
     });
 
-    // Initialisieren
     renderTask();
     movePlayer(playerPos);
   </script>
