@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Zeitform-Zwerg – Türenmodus</title>
+    <title>Zeitform-Zwerg – Stabile Tür-Version</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <style>
@@ -57,7 +57,7 @@ const config = {
     scene: { preload, create, update }
 };
 
-let player, cursors, jumpBtn, leftBtn, rightBtn, frageText, activeScene, boden;
+let player, cursors, jumpBtn = false, leftBtn = false, rightBtn = false, frageText, sceneRef;
 
 const game = new Phaser.Game(config);
 
@@ -68,17 +68,16 @@ function preload() {
 }
 
 function create() {
-    activeScene = this;
+    sceneRef = this;
     cursors = this.input.keyboard.createCursorKeys();
 
-    boden = this.physics.add.staticGroup();
+    const boden = this.physics.add.staticGroup();
     boden.create(400, 580, 'boden').setScale(2).refreshBody();
 
     player = this.physics.add.sprite(100, 450, 'spieler');
     player.setScale(2);
     player.setBounce(0.1);
     player.setCollideWorldBounds(true);
-
     this.physics.add.collider(player, boden);
 
     frageText = this.add.text(20, 20, '', { fontSize: '22px', fill: '#000' });
@@ -86,7 +85,7 @@ function create() {
     setupTouchControls();
     document.getElementById('hilfe').style.display = 'block';
 
-    showDoorTask(tasks[currentTask]);
+    showTask(tasks[currentTask]);
 }
 
 function update() {
@@ -104,25 +103,32 @@ function update() {
     }
 }
 
-function showDoorTask(task) {
+function showTask(task) {
     frageText.setText(task.frage);
-    const szene = activeScene;
+    const szene = sceneRef;
     const answers = [task.richtig, ...task.falsch].sort(() => 0.5 - Math.random());
 
-    answers.forEach((txt, i) => {
+    answers.forEach((antwort, i) => {
         const x = 180 + i * 200;
         const door = szene.physics.add.sprite(x, 500, 'tuer').setScale(0.5);
         door.setImmovable(true);
-        door.antwort = txt;
+        door.antwort = antwort;
 
-        const label = szene.add.text(x - 30, 460, txt, { fontSize: '18px', fill: '#000', backgroundColor: '#fff' });
+        const label = szene.add.text(x - 30, 460, antwort, {
+            fontSize: '18px',
+            fill: '#000',
+            backgroundColor: '#fff'
+        });
 
         szene.physics.add.overlap(player, door, () => {
-            if (door.antwort === task.richtig) {
-                frageText.setText('✅ Richtig!');
-                nextTask(szene);
-            } else {
-                frageText.setText('❌ Falsch!');
+            if (!door.answered) {
+                door.answered = true;
+                if (antwort === task.richtig) {
+                    frageText.setText('✅ Richtig!');
+                    nextTask(szene);
+                } else {
+                    frageText.setText('❌ Falsch!');
+                }
             }
         });
     });
