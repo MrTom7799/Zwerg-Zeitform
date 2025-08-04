@@ -1,130 +1,147 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zeitform-Türenspiel</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      background-color: #eef;
-      overflow: hidden;
-    }
-    #game-container {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-    }
-    #question {
-      margin-top: 20px;
-      font-size: 24px;
-    }
-    #tense-info {
-      margin-top: 5px;
-      font-size: 18px;
-      color: #555;
-    }
-    #doors {
-      display: flex;
-      justify-content: space-around;
-      width: 100%;
-      margin-top: 50px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zeitform-Türenspiel</title>
+<style>
+  body {
+    font-family: sans-serif;
+    background-color: #eef;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+  }
+  .question-box {
+    background-color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  .doors {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .door {
+    width: 30%;
+    min-width: 150px;
+    background-color: #ccc;
+    padding: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    user-select: none;
+  }
+  .door.correct {
+    background-color: #8f8;
+  }
+  .door.wrong {
+    background-color: #f88;
+  }
+  @media (max-width: 600px) {
     .door {
-      width: 100px;
-      height: 150px;
-      background-color: brown;
-      color: white;
-      font-size: 18px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border: 4px solid #444;
-      cursor: pointer;
+      width: 80%;
     }
-    #result {
-      margin: 20px;
-      font-size: 20px;
-      color: green;
-    }
-    #player {
-      width: 50px;
-      height: 50px;
-      background-color: red;
-      position: absolute;
-      bottom: 40px;
-      left: calc(50% - 25px);
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <div id="game-container">
-    <div id="question">Wähle die richtige Verbform: "Ich <u>gehen</u> gestern nach Hause."</div>
-    <div id="tense-info">Zeitform: Präteritum</div>
-    <div id="doors">
-      <div class="door" data-answer="geht">geht</div>
-      <div class="door" data-answer="ging">ging</div>
-      <div class="door" data-answer="gegangen">gegangen</div>
-    </div>
-    <div id="result"></div>
-    <div id="player"></div>
-  </div>
-  <script>
-    const player = document.getElementById('player');
-    const doors = document.querySelectorAll('.door');
-    const result = document.getElementById('result');
-    const question = document.getElementById('question');
-    const tenseInfo = document.getElementById('tense-info');
 
-    const tasks = [
-      { q: 'Ich <u>gehen</u> gestern nach Hause.', correct: 'ging', options: ['geht', 'ging', 'gegangen'], tense: 'Präteritum' },
-      { q: 'Er <u>sein</u> sehr müde.', correct: 'ist', options: ['war', 'ist', 'gewesen'], tense: 'Präsens' },
-      { q: 'Wir <u>haben</u> früher einen Hund gehabt.', correct: 'hatten', options: ['haben', 'hatten', 'gehabt'], tense: 'Präteritum' },
-      { q: 'Du <u>kommen</u> gestern zu spät.', correct: 'kamst', options: ['kommst', 'kamst', 'gekommen'], tense: 'Präteritum' },
-      { q: 'Ich <u>lesen</u> jeden Abend ein Buch.', correct: 'lese', options: ['liest', 'las', 'lese'], tense: 'Präsens' },
-      { q: 'Ihr <u>schreiben</u> bereits einen Aufsatz.', correct: 'habt geschrieben', options: ['schreibt', 'habt geschrieben', 'schriebt'], tense: 'Perfekt' },
-      { q: 'Sie <u>trinken</u> vorhin einen Kaffee.', correct: 'haben getrunken', options: ['trinkt', 'tranken', 'haben getrunken'], tense: 'Perfekt' },
-      { q: 'Du <u>sehen</u> den Film schon?', correct: 'hast gesehen', options: ['siehst', 'sahst', 'hast gesehen'], tense: 'Perfekt' },
-      { q: 'Ich <u>müssen</u> früher oft helfen.', correct: 'musste', options: ['muss', 'musste', 'gemusst'], tense: 'Präteritum' },
-      { q: 'Wir <u>werden</u> bald fertig.', correct: 'werden', options: ['wurden', 'werden', 'worden'], tense: 'Präsens' }
-    ];
+<h1>Zeitform-Türenspiel</h1>
+<div class="question-box" id="question">Lade Frage...</div>
+<div class="doors" id="choices"></div>
 
-    let currentIndex = 0;
+<script>
+const fragen = [
+  {
+    frage: "Ich hole meine Schwester vom Bahnhof ab.",
+    antworten: [
+      "Ich holte meine Schwester vom Bahnhof ab.",
+      "Ich habe meine Schwester vom Bahnhof abgeholt.",
+      "Ich hole meine Schwester vom Bahnhof ab."
+    ],
+    richtig: "Ich habe meine Schwester vom Bahnhof abgeholt."
+  },
+  {
+    frage: "Wir arbeiten heute im Büro.",
+    antworten: [
+      "Wir arbeiteten heute im Büro.",
+      "Wir haben heute im Büro gearbeitet.",
+      "Wir arbeiten heute im Büro."
+    ],
+    richtig: "Wir haben heute im Büro gearbeitet."
+  },
+  {
+    frage: "Du findest deinen Schlüssel unter dem Tisch.",
+    antworten: [
+      "Du fandest deinen Schlüssel unter dem Tisch.",
+      "Du hast deinen Schlüssel unter dem Tisch gefunden.",
+      "Du findest deinen Schlüssel unter dem Tisch."
+    ],
+    richtig: "Du hast deinen Schlüssel unter dem Tisch gefunden."
+  },
+  {
+    frage: "Er bringt den Kuchen zur Party.",
+    antworten: [
+      "Er brachte den Kuchen zur Party.",
+      "Er hat den Kuchen zur Party gebracht.",
+      "Er bringt den Kuchen zur Party."
+    ],
+    richtig: "Er hat den Kuchen zur Party gebracht."
+  },
+  {
+    frage: "Wir freuen uns auf das Wochenende.",
+    antworten: [
+      "Wir freuten uns auf das Wochenende.",
+      "Wir haben uns auf das Wochenende gefreut.",
+      "Wir freuen uns auf das Wochenende."
+    ],
+    richtig: "Wir haben uns auf das Wochenende gefreut."
+  }
+];
 
-    function renderTask() {
-      const task = tasks[currentIndex];
-      question.innerHTML = `Wähle die richtige Verbform: "${task.q}"`;
-      tenseInfo.textContent = `Zeitform: ${task.tense}`;
-      doors.forEach((door, i) => {
-        door.textContent = task.options[i];
-        door.setAttribute('data-answer', task.options[i]);
-      });
-      result.textContent = '';
+let aktuelleFrage = 0;
+
+function ladeFrage() {
+  const frage = fragen[aktuelleFrage];
+  document.getElementById("question").textContent = `Wähle die Perfektform von: "${frage.frage}"`;
+
+  const choiceBox = document.getElementById("choices");
+  choiceBox.innerHTML = "";
+
+  frage.antworten.sort(() => Math.random() - 0.5).forEach(antwort => {
+    const btn = document.createElement("div");
+    btn.className = "door";
+    btn.textContent = antwort;
+    btn.onclick = () => pruefeAntwort(btn, antwort);
+    choiceBox.appendChild(btn);
+  });
+}
+
+function pruefeAntwort(button, antwort) {
+  const frage = fragen[aktuelleFrage];
+  const kinder = document.querySelectorAll('.door');
+  kinder.forEach(el => {
+    el.classList.remove('correct', 'wrong');
+    if (el.textContent === frage.richtig) {
+      el.classList.add('correct');
+    } else if (el.textContent === antwort) {
+      el.classList.add('wrong');
     }
+    el.onclick = null;
+  });
 
-    function checkAnswer(answer) {
-      if (answer === tasks[currentIndex].correct) {
-        result.textContent = 'Richtig!';
-        setTimeout(() => {
-          currentIndex = (currentIndex + 1) % tasks.length;
-          renderTask();
-        }, 1000);
-      } else {
-        result.textContent = 'Leider falsch.';
-      }
-    }
+  setTimeout(() => {
+    aktuelleFrage = (aktuelleFrage + 1) % fragen.length;
+    ladeFrage();
+  }, 2000);
+}
 
-    doors.forEach((door) => {
-      door.addEventListener('click', () => {
-        checkAnswer(door.getAttribute('data-answer'));
-      });
-    });
+ladeFrage();
+</script>
 
-    renderTask();
-  </script>
 </body>
 </html>
