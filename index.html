@@ -48,42 +48,19 @@
       cursor: pointer;
       transition: transform 0.3s, background-color 0.3s;
     }
-    .door:hover {
-      transform: scale(1.1);
-      background-color: #5a2;
+    .door.correct {
+      background-color: green !important;
+    }
+    .door.wrong {
+      background-color: crimson !important;
     }
     #result {
-      margin: 20px;
+      margin: 10px;
       font-size: 20px;
-      color: green;
     }
-    #player {
-      width: 50px;
-      height: 50px;
-      background-color: red;
-      position: absolute;
-      bottom: 40px;
-      left: calc(50% - 25px);
-      border-radius: 50%;
-      transition: left 0.3s;
-    }
-    #controls {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-    .btn {
-      background-color: #888;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin: 0 10px;
+    #score {
       font-size: 18px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .btn:hover {
-      background-color: #444;
+      color: #222;
     }
   </style>
 </head>
@@ -97,19 +74,14 @@
       <div class="door" data-answer="gegangen">gegangen</div>
     </div>
     <div id="result"></div>
-    <div id="controls">
-      <button class="btn" onclick="moveLeft()">⬅️</button>
-      <button class="btn" onclick="selectAnswer()">✅</button>
-      <button class="btn" onclick="moveRight()">➡️</button>
-    </div>
-    <div id="player"></div>
+    <div id="score">Punkte: 0</div>
   </div>
   <script>
-    const player = document.getElementById('player');
     const doors = document.querySelectorAll('.door');
     const result = document.getElementById('result');
     const question = document.getElementById('question');
     const tenseInfo = document.getElementById('tense-info');
+    const scoreDisplay = document.getElementById('score');
 
     const tasks = [
       { q: 'Ich <u>gehen</u> gestern nach Hause.', correct: 'ging', options: ['geht', 'ging', 'gegangen'], tense: 'Präteritum' },
@@ -125,7 +97,7 @@
     ];
 
     let currentIndex = 0;
-    let playerPos = 1;
+    let score = 0;
 
     function renderTask() {
       const task = tasks[currentIndex];
@@ -134,49 +106,38 @@
       doors.forEach((door, i) => {
         door.textContent = task.options[i];
         door.setAttribute('data-answer', task.options[i]);
+        door.classList.remove('correct', 'wrong');
+        door.style.pointerEvents = 'auto';
       });
       result.textContent = '';
     }
 
-    function checkAnswer(answer) {
-      if (answer === tasks[currentIndex].correct) {
-        result.textContent = 'Richtig!';
-        setTimeout(() => {
-          currentIndex = (currentIndex + 1) % tasks.length;
-          renderTask();
-        }, 1000);
+    function checkAnswer(clickedDoor) {
+      const answer = clickedDoor.getAttribute('data-answer');
+      const isCorrect = answer === tasks[currentIndex].correct;
+      if (isCorrect) {
+        clickedDoor.classList.add('correct');
+        result.textContent = '✅ Richtig!';
+        score++;
       } else {
-        result.textContent = 'Leider falsch.';
+        clickedDoor.classList.add('wrong');
+        result.textContent = `❌ Falsch. Richtige Antwort: "${tasks[currentIndex].correct}"`;
       }
+      scoreDisplay.textContent = `Punkte: ${score}`;
+      doors.forEach(d => d.style.pointerEvents = 'none');
+      setTimeout(() => {
+        currentIndex = (currentIndex + 1) % tasks.length;
+        renderTask();
+      }, 1500);
     }
 
-    function movePlayer(position) {
-      const positions = ['20%', 'calc(50% - 25px)', '80%'];
-      player.style.left = positions[position];
-    }
-
-    function moveLeft() {
-      if (playerPos > 0) playerPos--;
-      movePlayer(playerPos);
-    }
-
-    function moveRight() {
-      if (playerPos < 2) playerPos++;
-      movePlayer(playerPos);
-    }
-
-    function selectAnswer() {
-      doors[playerPos].click();
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') moveLeft();
-      if (e.key === 'ArrowRight') moveRight();
-      if (e.key === 'Enter') selectAnswer();
+    doors.forEach((door) => {
+      door.addEventListener('click', () => {
+        checkAnswer(door);
+      });
     });
 
     renderTask();
-    movePlayer(playerPos);
   </script>
 </body>
 </html>
