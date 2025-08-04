@@ -1,153 +1,132 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Zeitform-Zwerg – Stabile Tür-Version</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <style>
-        body { margin: 0; padding: 0; background: #000; }
-        canvas { display: block; margin: 0 auto; }
-        #controls {
-            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px; z-index: 10;
-        }
-        .btn {
-            width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.3);
-            display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff;
-            user-select: none; touch-action: manipulation;
-        }
-        #hilfe {
-            position: absolute; top: 10px; right: 10px; background: white; color: black; padding: 10px;
-            border-radius: 8px; max-width: 300px; display: none; z-index: 10;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zeitform-Türenspiel</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background-color: #eef;
+      overflow: hidden;
+    }
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #question {
+      margin-top: 20px;
+      font-size: 24px;
+    }
+    #doors {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      margin-top: 50px;
+    }
+    .door {
+      width: 100px;
+      height: 150px;
+      background-color: brown;
+      color: white;
+      font-size: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 4px solid #444;
+      cursor: pointer;
+    }
+    #result {
+      margin: 20px;
+      font-size: 20px;
+      color: green;
+    }
+    #player {
+      width: 50px;
+      height: 50px;
+      background-color: red;
+      position: absolute;
+      bottom: 40px;
+      left: calc(50% - 25px);
+    }
+  </style>
 </head>
 <body>
-<div id="hilfe">
-    <strong>🎮 Steuerung:</strong><br>
-    ➡️ Pfeiltasten ODER Touch-Buttons<br>
-    ⬆️ Springe zu Antwort oder gehe zur Tür<br>
-    👣 Berühre die richtige Tür mit Antwort<br><br>
-    <button onclick="document.getElementById('hilfe').style.display='none'">Schließen</button>
-</div>
-<div id="controls">
-    <div class="btn" id="left">←</div>
-    <div class="btn" id="jump">↑</div>
-    <div class="btn" id="right">→</div>
-</div>
-<script>
-const tasks = [
-    {frage: 'Ich ___ (gehen) zur Schule.', richtig: 'gehe', falsch: ['ging','gegangen']},
-    {frage: 'Du ___ (fahren) mit dem Bus.', richtig: 'fährst', falsch: ['fuhr','gefahren']},
-    {frage: 'Er ___ (lesen) ein Buch.', richtig: 'liest', falsch: ['las','gelesen']}
-];
+  <div id="game-container">
+    <div id="question">Wähle die richtige Verbform: "Ich <u>gehen</u> gestern nach Hause."</div>
+    <div id="doors">
+      <div class="door" data-answer="geht">geht</div>
+      <div class="door" data-answer="ging">ging</div>
+      <div class="door" data-answer="gegangen">gegangen</div>
+    </div>
+    <div id="result"></div>
+    <div id="player"></div>
+  </div>
+  <script>
+    const player = document.getElementById('player');
+    const doors = document.querySelectorAll('.door');
+    const result = document.getElementById('result');
+    const question = document.getElementById('question');
 
-let currentTask = 0;
+    const tasks = [
+      { q: 'Ich <u>gehen</u> gestern nach Hause.', correct: 'ging', options: ['geht', 'ging', 'gegangen'] },
+      { q: 'Er <u>sein</u> müde.', correct: 'ist', options: ['war', 'ist', 'gewesen'] },
+      { q: 'Wir <u>haben</u> einen Hund.', correct: 'haben', options: ['hatten', 'haben', 'gehabt'] },
+    ];
 
-const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    backgroundColor: 0xddeeff,
-    physics: {
-        default: 'arcade',
-        arcade: { gravity: { y: 400 }, debug: false }
-    },
-    scene: { preload, create, update }
-};
+    let currentIndex = 0;
+    let playerPos = 1; // 0 = links, 1 = mitte, 2 = rechts
 
-let player, cursors, jumpBtn = false, leftBtn = false, rightBtn = false, frageText, sceneRef;
-
-const game = new Phaser.Game(config);
-
-function preload() {
-    this.load.image('boden', 'https://labs.phaser.io/assets/sprites/platform.png');
-    this.load.image('spieler', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
-    this.load.image('tuer', 'https://labs.phaser.io/assets/sprites/door_closed_top.png');
-}
-
-function create() {
-    sceneRef = this;
-    cursors = this.input.keyboard.createCursorKeys();
-
-    const boden = this.physics.add.staticGroup();
-    boden.create(400, 580, 'boden').setScale(2).refreshBody();
-
-    player = this.physics.add.sprite(100, 450, 'spieler');
-    player.setScale(2);
-    player.setBounce(0.1);
-    player.setCollideWorldBounds(true);
-    this.physics.add.collider(player, boden);
-
-    frageText = this.add.text(20, 20, '', { fontSize: '22px', fill: '#000' });
-
-    setupTouchControls();
-    document.getElementById('hilfe').style.display = 'block';
-
-    showTask(tasks[currentTask]);
-}
-
-function update() {
-    if (leftBtn || cursors.left.isDown) {
-        player.setVelocityX(-160);
-    } else if (rightBtn || cursors.right.isDown) {
-        player.setVelocityX(160);
-    } else {
-        player.setVelocityX(0);
+    function renderTask() {
+      const task = tasks[currentIndex];
+      question.innerHTML = `Wähle die richtige Verbform: "${task.q}"`;
+      doors.forEach((door, i) => {
+        door.textContent = task.options[i];
+        door.setAttribute('data-answer', task.options[i]);
+      });
+      result.textContent = '';
     }
 
-    if ((jumpBtn || cursors.up.isDown) && player.body.touching.down) {
-        player.setVelocityY(-330);
-        jumpBtn = false;
+    function checkAnswer(answer) {
+      if (answer === tasks[currentIndex].correct) {
+        result.textContent = 'Richtig!';
+        setTimeout(() => {
+          currentIndex = (currentIndex + 1) % tasks.length;
+          renderTask();
+        }, 1000);
+      } else {
+        result.textContent = 'Leider falsch.';
+      }
     }
-}
 
-function showTask(task) {
-    frageText.setText(task.frage);
-    const szene = sceneRef;
-    const answers = [task.richtig, ...task.falsch].sort(() => 0.5 - Math.random());
-
-    answers.forEach((antwort, i) => {
-        const x = 180 + i * 200;
-        const door = szene.physics.add.sprite(x, 500, 'tuer').setScale(0.5);
-        door.setImmovable(true);
-        door.antwort = antwort;
-
-        const label = szene.add.text(x - 30, 460, antwort, {
-            fontSize: '18px',
-            fill: '#000',
-            backgroundColor: '#fff'
-        });
-
-        szene.physics.add.overlap(player, door, () => {
-            if (!door.answered) {
-                door.answered = true;
-                if (antwort === task.richtig) {
-                    frageText.setText('✅ Richtig!');
-                    nextTask(szene);
-                } else {
-                    frageText.setText('❌ Falsch!');
-                }
-            }
-        });
+    doors.forEach((door, index) => {
+      door.addEventListener('click', () => {
+        checkAnswer(door.getAttribute('data-answer'));
+      });
     });
-}
 
-function nextTask(scene) {
-    scene.time.delayedCall(1500, () => {
-        currentTask = (currentTask + 1) % tasks.length;
-        scene.scene.restart();
+    function movePlayer(position) {
+      const positions = ['20%', 'calc(50% - 25px)', '80%'];
+      player.style.left = positions[position];
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' && playerPos > 0) playerPos--;
+      if (e.key === 'ArrowRight' && playerPos < 2) playerPos++;
+      if (e.key === 'Enter') {
+        doors[playerPos].click();
+      }
+      movePlayer(playerPos);
     });
-}
 
-function setupTouchControls() {
-    document.getElementById('left').ontouchstart = () => leftBtn = true;
-    document.getElementById('right').ontouchstart = () => rightBtn = true;
-    document.getElementById('jump').ontouchstart = () => jumpBtn = true;
-    document.getElementById('left').ontouchend = () => leftBtn = false;
-    document.getElementById('right').ontouchend = () => rightBtn = false;
-}
-</script>
+    // Initialisieren
+    renderTask();
+    movePlayer(playerPos);
+  </script>
 </body>
 </html>
